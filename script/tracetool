@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# Source common shell library
+. ltslib
+
+# Check arguments
+[ $# -eq 0 ] && Critical "Usage: tracetool command [ args ]"
+
+# Get command to execute
+cmd="$1"; shift
+
+# Redirect error from run_one_erl_cmd temporarily
+error_tmp=`MakeTempfile`
+
+# Check command and handle command arguments
+if [ "$cmd" = 'start' ]; then
+    args="$@"
+    filename=`run_one_erl_cmd "tracetool:start([$args])." 2> "$error_tmp"`
+else
+    args="$@"
+    filename=`run_one_erl_cmd "tracetool:stop()." 2> "$error_tmp"`
+fi
+
+ret=$?
+if [ $ret -ne 0 ]; then
+    if cat "$error_tmp" | tr -d '\n' | grep -q '{undef, *\[{tracetool,'; then
+        Error 'Wrong number of arguments for command: %s' "$cmd"
+    else
+        cat >&2 "$error_tmp"
+        Error "Failed tracetool command: %s '%s'" "$cmd" "$args"
+    fi
+fi
+
+# Print the result
+if [ -n "$filename" -a -r "$filename" ]; then
+    echo -e "`cat "$filename"`" # Use -e to allow formatting escape sequences
+	rm -f "$filename"
+fi
+
+# Cleanup and exit
+rm -f "$error_tmp"
+exit $ret
