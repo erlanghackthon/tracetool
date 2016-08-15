@@ -30,11 +30,11 @@ trace(Specs, Max, Options) ->
 	recon_trace:calls(Specs, Max, NewOpts).
 
 stop() -> 
-    Nodes = ets:lookup(?dbname, enodes),
-	case Nodes of
+   %% Nodes = ets:lookup(?dbname, enodes),
+	case ets:lookup(?dbname, enodes) of
 		[] ->
             ok;
-        Nodes ->
+        [{enodes, Nodes}] ->
 			lists:foreach(
 	            fun(Node)->
 			        rpc:call(Node, tracetool, clear, []),
@@ -53,7 +53,7 @@ close_openresource() ->
     case ets:lookup(?dbname, handlers) of
 		[] ->
 			ok;
-		Handlers - >
+		[{handlers, Handlers}] - >
 			lists:foreach(
 		        fun(Handler) -> 
 						case Handler of
@@ -67,42 +67,42 @@ close_openresource() ->
     end.
 
 record_node(Node) ->
-    Nodes = ets:lookup(?dbname, enodes),
-	case Nodes of
+ %%   Nodes = ets:lookup(?dbname, enodes),
+	case ets:lookup(?dbname, enodes) of
 		[] ->
             ets:insert(?dbname, {enodes, [Node]});
-        Nodes ->
+        [{enodes, Nodes}] ->
 			NewNodes = Nodes ++ Node,
 			ets:insert(?dbname, {enodes, NewNodes})
 	end.
 
 remove_node(Node) ->
-    Nodes = ets:lookup(?dbname, enodes),
-	case Nodes of
+  %%  Nodes = ets:lookup(?dbname, enodes),
+	case ets:lookup(?dbname, enodes) of
 		[] ->
             ok;
-        Nodes ->
+        [{enodes, Nodes}] ->
 			NewNodes = Nodes -- Node,
 			ets:insert(?dbname, {enodes, NewNodes})
 	end.
 
 %%% Store handler of opened resources in DB
 record_handler(Handler) ->
-	Handlers = ets:lookup(?dbname, handlers),
-	case Handlers of
+%%	Handlers = ets:lookup(?dbname, handlers),
+	case ets:lookup(?dbname, handlers) of
 		[] ->
             ets:insert(?dbname, {handlers, [Handler]});
-        Handlers ->
+        [{handlers, Handlers}] ->
 			NewHandlers = Handlers ++ Handler,
 			ets:insert(?dbname, {handlers, NewHandlers})
 	end.
 
 remove_handler(Handler) ->
-    Handlers = ets:lookup(?dbname, handlers),
-	case Handlers of
+%%    Handlers = ets:lookup(?dbname, handlers),
+	case ets:lookup(?dbname, handlers) of
 		[] ->
             ok;
-        Handlers ->
+        [{handlers, Handlers}] ->
 			NewHandlers = Handlers -- Handler,
 			ets:insert(?dbname, {handlers, NewHandlers})
 	end.
@@ -117,4 +117,5 @@ modify_options_for_recon(Options) ->
 					  record_handler({logfile, Dev});
 				  Opt ->
 					  NewOptions ++ Opt
-			  end, [], Options).
+			  end
+	  end, [], Options).
