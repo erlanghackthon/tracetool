@@ -41,7 +41,18 @@ stop() ->
 			        remove_node(Node)
 	                end,
 	            Nodes)
-	end.
+	end,
+    case ets:lookup(?dbname, handlers) of
+		[] ->
+			ok;
+		[{handlers, Handlers}] ->
+			lists:foreach(
+				fun(Handler) ->
+					remove_handler(Handler)
+				end,
+			Handlers)
+	end,
+	ets:delete(?dbname).
 
 clear() ->
 	close_openresource(),
