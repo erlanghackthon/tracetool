@@ -56,6 +56,7 @@ stop() ->
 
 clear() ->
 	close_openresource(),
+        ets:delete(?dbname),
 	recon_trace:clear().
 %% ====================================================================
 %% Internal functions
