@@ -116,6 +116,7 @@ modify_options_for_recon(Options) ->
 			  case Opt of
 				  {logfilepath, LogfilePath} ->
 					  {ok, Dev} = file:open(LogfilePath ++ "tracetool_" ++ atom_to_list(node()) ++ ".log",[write]),
+                                          file:write(Dev, "-----------Trace toll started---------------"),
 					  NewOptions ++ {io_server, Dev},
 					  record_handler({logfile, Dev});
 				  Opt ->
