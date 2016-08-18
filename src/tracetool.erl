@@ -17,7 +17,7 @@ start(ConfFilePath) ->
 	lists:foreach(
 	  fun({trace, Node, Specs, Max, Options})->
 			  rpc:call(Node, tracetool, trace, [Specs, Max, Options]),
-			  record_node(Node)
+			  record_node([Node])
 	  end,
 	  ConfigList).
 
@@ -126,8 +126,8 @@ modify_options_for_recon(Options) ->
 				  {logfilepath, LogfilePath} ->
 					  {ok, Dev} = file:open(LogfilePath ++ "tracetool_" ++ atom_to_list(node()) ++ ".log",[write]),
                                           file:write(Dev, "-----------Trace toll started---------------"),
-					  NewOptions ++ {io_server, Dev},
-					  record_handler({logfile, Dev});
+					  NewOptions ++ [{io_server, Dev}],
+					  record_handler([{logfile, Dev}]);
 				  Opt ->
 					  NewOptions ++ Opt
 			  end
