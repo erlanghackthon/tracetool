@@ -43,6 +43,8 @@ stop() ->
 	            Nodes)
 	end.
 
+
+
 clear() ->
 	close_openresource(),
         ets:delete(?dbname),
