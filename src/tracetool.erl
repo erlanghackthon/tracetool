@@ -120,6 +120,6 @@ modify_options_for_recon(Options) ->
 					  NewOptions ++ [{io_server, Dev}],
 					  record_handler([{logfile, Dev}]);
 				  Opt ->
-					  NewOptions ++ Opt
+					  NewOptions ++ [Opt]
 			  end
 	  end, [], Options).
