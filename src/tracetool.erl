@@ -12,114 +12,65 @@
 -export([stop/0, start/1, trace/3, clear/0]).
 
 start(ConfFilePath) ->
-    {ok, ConfigList} = file:consult(ConfFilePath),
-	ets:new(?dbname, [public, named_table, compressed]),
+    trace_mgr:start(),
+    msg_trace:info(tracetool,"Config Path: ~w~n", [ConfFilePath]),
+    {ok, ConfigList} = file:script(ConfFilePath),
+        trace_mgr:create_db(?dbname),
 	lists:foreach(
 	  fun({trace, Node, Specs, Max, Options})->
 			  rpc:call(Node, tracetool, trace, [Specs, Max, Options]),
-			  record_node([Node])
+			  record_node(Node)
 	  end,
 	  ConfigList).
 
 trace(Specs, Max, Options) ->
+        trace_mgr:start(),
+        msg_trace:info(tracetool,"strat trace on node: ~w~n", [node()]),
 	case ets:info(?dbname) of
 		undefined ->
-			ets:new(?dbname, [public, named_table, compressed])
+               trace_mgr:create_db(?dbname);
+		_Others ->
+	            msg_trace:info(tracetool,"Node:~p, dbname exists~n", [node()])
 	end,
 	NewOpts = modify_options_for_recon(Options),
-	recon_trace:calls(Specs, Max, NewOpts).
+	MatchCount = recon_trace:calls(Specs, Max, NewOpts),
+        msg_trace:info(tracetool,"recon_trace:calls(~w, ~w, ~w), MatchCount:~w~n", [Specs, Max, NewOpts, MatchCount]).
 
 stop() -> 
-   %% Nodes = ets:lookup(?dbname, enodes),
-	case ets:lookup(?dbname, enodes) of
-		[] ->
+    case trace_mgr:get_value(?dbname, enodes) of
+        {error, _Reason} ->
             ok;
-        [{enodes, Nodes}] ->
-			lists:foreach(
+		{ok, Nodes} ->
+	    lists:foreach(
 	            fun(Node)->
-			        rpc:call(Node, tracetool, clear, []),
-			        remove_node(Node)
+			        rpc:call(Node, tracetool, clear, [])
 	                end,
 	            Nodes)
 	end.
 
-
-
 clear() ->
 	close_openresource(),
-        ets:delete(?dbname),
+    trace_mgr:destroy_db(?dbname),
 	recon_trace:clear().
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
 close_openresource() ->
-    case ets:lookup(?dbname, handlers) of
-		[] ->
-			ok;
-		[{handlers, Handlers}] - >
-			lists:foreach(
-		        fun(Handler) -> 
-						case Handler of
-							{logfile, Dev} ->
-								file:close(Dev);
-							true ->
-								ok
-						end
-				end,
-			Handlers)
-    end.
+    trace_mgr:close_report().
 
 record_node(Node) ->
- %%   Nodes = ets:lookup(?dbname, enodes),
-	case ets:lookup(?dbname, enodes) of
-		[] ->
-            ets:insert(?dbname, {enodes, [Node]});
-        [{enodes, Nodes}] ->
-			NewNodes = Nodes ++ Node,
-			ets:insert(?dbname, {enodes, NewNodes})
-	end.
-
-remove_node(Node) ->
-  %%  Nodes = ets:lookup(?dbname, enodes),
-	case ets:lookup(?dbname, enodes) of
-		[] ->
-            ok;
-        [{enodes, Nodes}] ->
-			NewNodes = Nodes -- Node,
-			ets:insert(?dbname, {enodes, NewNodes})
-	end.
-
-%%% Store handler of opened resources in DB
-record_handler(Handler) ->
-%%	Handlers = ets:lookup(?dbname, handlers),
-	case ets:lookup(?dbname, handlers) of
-		[] ->
-            ets:insert(?dbname, {handlers, [Handler]});
-        [{handlers, Handlers}] ->
-			NewHandlers = Handlers ++ Handler,
-			ets:insert(?dbname, {handlers, NewHandlers})
-	end.
-
-remove_handler(Handler) ->
-%%    Handlers = ets:lookup(?dbname, handlers),
-	case ets:lookup(?dbname, handlers) of
-		[] ->
-            ok;
-        [{handlers, Handlers}] ->
-			NewHandlers = Handlers -- Handler,
-			ets:insert(?dbname, {handlers, NewHandlers})
-	end.
+     trace_mgr:append_value(?dbname, enodes, Node).
 
 modify_options_for_recon(Options) -> 
+    msg_trace:info(tracetool,"modify_options_for_recon ~p on ~w ~n", [Options, node()]),
 	lists:foldl(
 	  fun(Opt, NewOptions) ->
+              msg_trace:info(tracetool,"Deal with Opt: ~p~n", [Opt]),
 			  case Opt of
 				  {logfilepath, LogfilePath} ->
-					  {ok, Dev} = file:open(LogfilePath ++ "tracetool_" ++ atom_to_list(node()) ++ ".log",[write]),
-                                          file:write(Dev, "-----------Trace toll started---------------"),
-					  NewOptions ++ [{io_server, Dev}],
-					  record_handler([{logfile, Dev}]);
+					  Dev = trace_mgr:open_report(LogfilePath ++ "tracetool_" ++ atom_to_list(node()) ++ ".log"),
+					  [{io_server, Dev} | NewOptions];
 				  Opt ->
-					  NewOptions ++ [Opt]
+					  [Opt | NewOptions]
 			  end
-	  end, [], Options).
+			  end, [], Options).

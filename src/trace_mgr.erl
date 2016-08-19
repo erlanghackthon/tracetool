@@ -11,7 +11,8 @@
          open_report/1,
          close_report/0,
          get_value/2,
-         update_value/3
+         put_value/3,
+		 append_value/3
          ]).
 
 %% gen_server callbacks
@@ -36,7 +37,12 @@
 %% @end
 %%--------------------------------------------------------------------
 start() ->
-    gen_server:start({local, ?MODULE}, ?MODULE, [], []).
+	case whereis(?MODULE) of
+		undefined ->
+            gen_server:start({local, ?MODULE}, ?MODULE, [], []);
+		Other ->
+			ok
+	end.
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -72,10 +78,11 @@ close_report() ->
     gen_server:call(?MODULE, close_report).
 
 get_value(DBName, Key) ->
-    gen_server:call(?MODULE, {get_entry, DBName, Key}).
-update_value(DBName, Key, Value) ->
-    gen_server:call(?MODULE, {update_entry, DBName, Key, Value}).
-
+    gen_server:call(?MODULE, {get_value, DBName, Key}).
+put_value(DBName, Key, Value) ->
+    gen_server:call(?MODULE, {put_value, DBName, Key, Value}).
+append_value(DBName, Key, Value) ->
+    gen_server:call(?MODULE, {append_value, DBName, Key, Value}).
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
@@ -91,24 +98,35 @@ update_value(DBName, Key, Value) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call({create_db, DBName}, _From, State) ->
-    TableName = ets:new(DBName, [public, named_table, compressed]),
+	case ets:info(DBName) of
+		undefined ->
+            TableName = ets:new(DBName, [public, named_table, compressed]);
+		_ ->
+			TableName = DBName
+	end,    
     {reply, TableName, State};
 handle_call({create_db, DBName, Options}, _From, State) ->
-    TableName = ets:new(DBName, Options),
+	case ets:info(DBName) of
+		undefined ->
+            TableName = ets:new(DBName, Options);
+		_ ->
+			TableName = DBName
+	end,    
     {reply, TableName, State};
 handle_call({destroy_db, DBName}, _From, State) ->
     RtnVar = ets:delete(DBName),
     {reply, RtnVar, State};
 
 handle_call({open_report, ReportName}, _From, State) ->
+	filelib:ensure_dir(ReportName),
     {ok, Fd} = file:open(ReportName, [write]),
     file:write(Fd, "-----------Tracing Started---------------~n"),
-    {reply, ok, State#state{fd = Fd}};
+    {reply, Fd, State#state{fd = Fd}};
 handle_call(close_report, _From, State) ->
     file:close(State#state.fd),
     {reply, ok, State};
 
-handle_call({get_entry, DBName, Key}, _From, State) ->
+handle_call({get_value, DBName, Key}, _From, State) ->
     Reply =
     case ets:info(DBName) of
         undefined ->
@@ -123,21 +141,47 @@ handle_call({get_entry, DBName, Key}, _From, State) ->
     end,
     {reply, Reply, State};
 
-handle_call({update_entry, DBName, Key, Value}, _From, State) ->
+handle_call({append_value, DBName, Key, Value}, _From, State) ->
     Reply =
     case ets:info(DBName) of
         undefined ->
             {error, enotable};
         _Other ->
-            case ets:update_element(DBName, Key, {2, Value}) of
-                true ->
-                    ok;
-                false ->
-                    {error, enoentry}
+            case ets:lookup(DBName, Key) of
+                [] ->
+                    ets:insert(DBName, {Key, [Value]});
+                [{Key, Values}] when is_list(Values)->
+					NewValue = [Value| Values],
+                    case ets:update_element(DBName, Key, {2, NewValue}) of
+		                true ->
+		                    ok;
+		                false ->
+		                    {error, enoentry}
+		            end
             end
+            
     end,
     {reply, Reply, State};
 
+handle_call({put_value, DBName, Key, Value}, _From, State) ->
+    Reply =
+    case ets:info(DBName) of
+        undefined ->
+            {error, enotable};
+        _Other ->
+		case ets:lookup(DBName, Key) of
+                  [] ->
+                    ets:insert(DBName, {Key, Value});
+                  [{Key, _}] ->
+                     case ets:update_element(DBName, Key, {2, Value}) of
+                       true ->
+                          ok;
+                       false ->
+                          {error, enoentry}
+                     end
+                 end
+     end,
+    {reply, Reply, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -196,3 +240,4 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
