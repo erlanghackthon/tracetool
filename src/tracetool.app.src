@@ -1,0 +1,13 @@
+{application, tracetool,
+ [{description, "Diagnostic tools for production use"},
+  {vsn, "0.0.1"},
+  {modules, [recon, recon_alloc, recon_lib, recon_trace, trace_mgr, tracetool]},
+  {registered, []},
+  {applications, [kernel, stdlib]},
+
+  {maintainers, ["Zegang"]},
+  {licenses, ["BSD"]},
+  {links, [{"Github", "https://github.com/erlanghackthon/tracetool/"},
+           {"Documentation", ""}]},
+  {files, ["src/", "script/", "rebar.lock", "README.md", "LICENSE"]}
+]}.
