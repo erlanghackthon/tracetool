@@ -40,7 +40,7 @@ start() ->
     case whereis(?MODULE) of
         undefined ->
             gen_server:start({local, ?MODULE}, ?MODULE, [], []);
-        Other ->
+        _ ->
             ok
     end.
 
