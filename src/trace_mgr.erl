@@ -37,12 +37,12 @@
 %% @end
 %%--------------------------------------------------------------------
 start() ->
-	case whereis(?MODULE) of
-		undefined ->
+    case whereis(?MODULE) of
+        undefined ->
             gen_server:start({local, ?MODULE}, ?MODULE, [], []);
-		Other ->
-			ok
-	end.
+        Other ->
+            ok
+    end.
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -98,27 +98,27 @@ append_value(DBName, Key, Value) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call({create_db, DBName}, _From, State) ->
-	case ets:info(DBName) of
-		undefined ->
+    case ets:info(DBName) of
+        undefined ->
             TableName = ets:new(DBName, [public, named_table, compressed]);
-		_ ->
-			TableName = DBName
-	end,    
+        _ ->
+            TableName = DBName
+    end,    
     {reply, TableName, State};
 handle_call({create_db, DBName, Options}, _From, State) ->
-	case ets:info(DBName) of
-		undefined ->
+    case ets:info(DBName) of
+        undefined ->
             TableName = ets:new(DBName, Options);
-		_ ->
-			TableName = DBName
-	end,    
+        _ ->
+            TableName = DBName
+    end,    
     {reply, TableName, State};
 handle_call({destroy_db, DBName}, _From, State) ->
     RtnVar = ets:delete(DBName),
     {reply, RtnVar, State};
 
 handle_call({open_report, ReportName}, _From, State) ->
-	filelib:ensure_dir(ReportName),
+    filelib:ensure_dir(ReportName),
     {ok, Fd} = file:open(ReportName, [write]),
     file:write(Fd, "-----------Tracing Started---------------~n"),
     {reply, Fd, State#state{fd = Fd}};
@@ -151,13 +151,13 @@ handle_call({append_value, DBName, Key, Value}, _From, State) ->
                 [] ->
                     ets:insert(DBName, {Key, [Value]});
                 [{Key, Values}] when is_list(Values)->
-					NewValue = [Value| Values],
+                    NewValue = [Value| Values],
                     case ets:update_element(DBName, Key, {2, NewValue}) of
-		                true ->
-		                    ok;
-		                false ->
-		                    {error, enoentry}
-		            end
+                        true ->
+                            ok;
+                        false ->
+                            {error, enoentry}
+                    end
             end
             
     end,
@@ -169,7 +169,7 @@ handle_call({put_value, DBName, Key, Value}, _From, State) ->
         undefined ->
             {error, enotable};
         _Other ->
-		case ets:lookup(DBName, Key) of
+        case ets:lookup(DBName, Key) of
                   [] ->
                     ets:insert(DBName, {Key, Value});
                   [{Key, _}] ->
