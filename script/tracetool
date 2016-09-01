@@ -1,18 +1,15 @@
 #!/bin/sh
 
-# Source common shell library
-. ltslib
-
-# Check arguments
-[ $# -eq 0 ] && Critical "Usage: tracetool command [ args ]"
+[ $# -eq 0 ] && echo "Usage: tracetool command [ args ]"
 
 # Get command to execute
 cmd="$1"; shift
-
+echo $cmd
+echo
 
 function call_mfa()
 {
-echo "@ = $@, * = $*"
+    echo "@ = $@, * = $*"
     echo "$@" | erl_call -r -h trace_enode -sname dallas0 -c DALLAS -e
     [ $? -ne 0 ] && echo 'Erlang call failed'
 }
@@ -26,4 +23,5 @@ else
 fi
 
 ret=$?
+echo
 exit $ret
