@@ -12,7 +12,7 @@
          close_report/0,
          get_value/2,
          put_value/3,
-		 append_value/3
+         append_value/3
          ]).
 
 %% gen_server callbacks
@@ -169,17 +169,17 @@ handle_call({put_value, DBName, Key, Value}, _From, State) ->
         undefined ->
             {error, enotable};
         _Other ->
-        case ets:lookup(DBName, Key) of
-                  [] ->
+            case ets:lookup(DBName, Key) of
+                [] ->
                     ets:insert(DBName, {Key, Value});
-                  [{Key, _}] ->
-                     case ets:update_element(DBName, Key, {2, Value}) of
-                       true ->
+                [{Key, _}] ->
+                    case ets:update_element(DBName, Key, {2, Value}) of
+                        true ->
                           ok;
-                       false ->
+                        false ->
                           {error, enoentry}
-                     end
-                 end
+                    end
+            end
      end,
     {reply, Reply, State};
 handle_call(_Request, _From, State) ->
