@@ -1,7 +1,7 @@
 {application, tracetool,
  [{description, "Diagnostic tools for production use"},
   {vsn, "0.0.1"},
-  {modules, [recon, recon_alloc, recon_lib, recon_trace, trace_mgr, tracetool]},
+  {modules, [recon, recon_alloc, recon_lib, recon_trace, trace_mgr, tt_statistics, tracetool]},
   {registered, []},
   {applications, [kernel, stdlib]},
 
