@@ -58,13 +58,13 @@ update_amount({Acc, RecordTime}) ->
 init([]) ->
     trace_mgr:create_db(?dbname),
     trace_mgr:put_value(?dbname, amount, 0),
-    {ok, #state{amount=0, lastamount=0, lasttime=calendar:now_to_datetime(erlang:timestamp()), rate=0}}.
+    {ok, #state{amount=0, lastamount=0, lasttime=erlang:timestamp(), rate=0}}.
 
 handle_call({update_amount, {Acc, RecordTime}}, _From, State) ->
     #state{ amount = Amount, lastamount = LastAmount, lasttime = LastTime} = State,
     NewAmount = Amount + Acc,
     RtnVar = trace_mgr:put_value(?dbname, amount, NewAmount),
-    TimeDiff = calendar:datetime_to_gregorian_seconds(RecordTime) - calendar:datetime_to_gregorian_seconds(LastTime),
+    TimeDiff = timer:now_diff(RecordTime, LastTime) / 1000000,
     if
         TimeDiff >= 1 ->
             NewRate = (NewAmount - LastAmount) / TimeDiff,
