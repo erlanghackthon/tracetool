@@ -384,7 +384,7 @@ formatter(Tracer, IOServer, FormatterFun) ->
         {'EXIT', Tracer, Reason} ->
             exit(Reason);
         TraceMsg ->
-            tt_statistics:update_amount({1, erlang:timestamp()}),
+            gen_server:call(tt_statistics, {update_amount, {1, erlang:timestamp()}}),
             io:format(IOServer, FormatterFun(TraceMsg), []),
             formatter(Tracer, IOServer, FormatterFun)
     end.
