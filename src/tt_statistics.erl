@@ -70,7 +70,7 @@ handle_call({update_amount, {Acc, RecordTime}}, _From, State) ->
             NewRate = (NewAmount - LastAmount) / TimeDiff,
             trace_mgr:put_value(?dbname, {rate, RecordTime}, NewRate),
             {reply, RtnVar, #state{ amount = NewAmount, lastamount = NewAmount, lasttime = RecordTime, rate = NewRate}};
-        _ ->
+        true ->
             {reply, RtnVar, State#state{amount = NewAmount}}
     end.
 
