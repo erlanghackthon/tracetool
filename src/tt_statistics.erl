@@ -4,7 +4,7 @@
 
 -module(tt_statistics).
 
--define(dbname, tt_statistics).
+-define(dbname, tt_statistics_db).
 
 -behaviour(gen_server).
 
