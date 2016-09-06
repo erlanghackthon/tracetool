@@ -21,7 +21,7 @@ start(ConfFilePath) ->
             case Node of
                 all ->
                     Nodes = [node()] ++ nodes(),
-                    lists:foreach( fun(Node1) -> rpc:call(Node1, tracetool, trace, [Specs, Max, Options]),record_node(Node) end, Nodes);
+                    lists:foreach( fun(Node1) -> rpc:call(Node1, tracetool, trace, [Specs, Max, Options]),record_node(Node1) end, Nodes);
                 _ ->
                     rpc:call(Node, tracetool, trace, [Specs, Max, Options]),
                     record_node(Node)
