@@ -120,7 +120,7 @@ handle_call({destroy_db, DBName}, _From, State) ->
 handle_call({open_report, ReportName}, _From, State) ->
     filelib:ensure_dir(ReportName),
     {ok, Fd} = file:open(ReportName, [write]),
-    file:write(Fd, "-----------Tracing Started---------------~n"),
+    file:write(Fd, "-----------Tracing Started---------------"),
     {reply, Fd, State#state{fd = Fd}};
 handle_call(close_report, _From, State) ->
     file:close(State#state.fd),
