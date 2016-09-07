@@ -15,8 +15,7 @@ start(ConfFilePath) ->
     trace_mgr:start(),
     msg_trace:info(tracetool,"Config Path: ~w~n", [ConfFilePath]),
     {ok, ConfigList} = file:script(ConfFilePath),
-    trace_mgr:create_db(?dbname),
-    tt_statistics:start(),
+    trace_mgr:create_db(?dbname),    
     lists:foreach(
         fun({trace, Node, Specs, Max, Options})->
             case Node of
@@ -32,6 +31,7 @@ start(ConfFilePath) ->
 
 trace(Specs, Max, Options) ->
     trace_mgr:start(),
+    tt_statistics:start(),
     msg_trace:info(tracetool,"strat trace on node: ~w~n", [node()]),
     case ets:info(?dbname) of
         undefined ->
