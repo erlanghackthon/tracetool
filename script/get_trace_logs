@@ -1,0 +1,45 @@
+#!/bin/sh
+
+if [ -d /trace/logs ]
+then
+    rm -rf /trace/logs
+fi
+
+mkdir /trace/logs
+
+LOGFILE="/var/dallas/2102-1_2103-1_2304_tr_recon/trace.conf"
+
+CONFIGTUPLE=$(cat $LOGFILE | grep "logs")
+
+NODELIST=$(echo $CONFIGTUPLE | cut -d '[' -f2 | cut -d ']' -f1 | sed 's/,/ /g')
+
+for i in NODELIST
+do 
+	if [ "$i" = "dls2304-1"]; then
+		cp /var/log/tracetool/ /trace/logs/
+	else
+	scp -r root@$i:/var/log/tracetool/ /trace/logs/
+	fi
+done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
