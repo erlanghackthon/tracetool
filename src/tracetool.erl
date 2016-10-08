@@ -13,9 +13,9 @@
 
 start(ConfFilePath) ->
     trace_mgr:start(),
-    msg_trace:info(tracetool,"Config Path: ~w~n", [ConfFilePath]),
+    error_logger:info_msg("Config Path: ~w~n", [ConfFilePath]),
     {ok, ConfigList} = file:script(ConfFilePath),
-    trace_mgr:create_db(?dbname),    
+    trace_mgr:create_db(?dbname),
     lists:foreach(
         fun({trace, Node, Specs, Max, Options})->
             case Node of
@@ -32,16 +32,15 @@ start(ConfFilePath) ->
 trace(Specs, Max, Options) ->
     trace_mgr:start(),
     tt_statistics:start(),
-    msg_trace:info(tracetool,"strat trace on node: ~w~n", [node()]),
     case ets:info(?dbname) of
         undefined ->
                trace_mgr:create_db(?dbname);
         _Others ->
-                msg_trace:info(tracetool,"Node:~p, dbname exists~n", [node()])
+                error_logger:info_msg("Node:~p, dbname exists~n", [node()])
     end,
     NewOpts = modify_options_for_recon(Options),
     MatchCount = recon_trace:calls(Specs, Max, NewOpts),
-        msg_trace:info(tracetool,"recon_trace:calls(~w, ~w, ~w), MatchCount:~w~n", [Specs, Max, NewOpts, MatchCount]).
+    error_logger:info_msg("Node:~p, ~w lines matched~n", [node(), MatchCount]).
 
 stop() -> 
     case trace_mgr:get_value(?dbname, enodes) of
@@ -69,10 +68,8 @@ record_node(Node) ->
      trace_mgr:append_value(?dbname, enodes, Node).
 
 modify_options_for_recon(Options) -> 
-    msg_trace:info(tracetool,"modify_options_for_recon ~p on ~w ~n", [Options, node()]),
     lists:foldl(
       fun(Opt, NewOptions) ->
-              msg_trace:info(tracetool,"Deal with Opt: ~p~n", [Opt]),
               case Opt of
                   {logfilepath, LogfilePath} ->
                       Dev = trace_mgr:open_report(LogfilePath ++ "tracetool_" ++ atom_to_list(node()) ++ ".log"),
