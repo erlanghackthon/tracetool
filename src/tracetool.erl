@@ -13,7 +13,7 @@
 
 start(ConfFilePath) ->
     trace_mgr:start(),
-    error_logger:info_msg("Config Path: ~w~n", [ConfFilePath]),
+    error_logger:info_msg("Config Path: ~p~n", [ConfFilePath]),
     {ok, ConfigList} = file:script(ConfFilePath),
     trace_mgr:create_db(?dbname),
     lists:foreach(

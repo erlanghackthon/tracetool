@@ -4,6 +4,7 @@
 
 %% API functions
 -export([start_link/0,
+         stop/0,
          set_rate/1,
          func_to_be_traced/1]).
 
@@ -15,9 +16,15 @@
          terminate/2,
          code_change/3]).
 
--record(state, {rate, tref, tracer, formatter, stable_c}).
+-record(state, {rate, tref, tracer, formatter, stable_c,
+            report_fd}).
 
 -define(max_allowed_mq_len, 8000).
+-define(stable_mq_len, 100).
+-define(fine_tuning_var, 0.1).
+-define(quick_ramp_var, 1).
+-define(invoke_interval, 10). % in milliseconds
+-define(report_path, "/tmp/loadtest.report"). % in milliseconds
 
 %%%===================================================================
 %%% API functions
@@ -49,16 +56,28 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, Ref} = timer:send_interval(10, ?MODULE, invoke),
+    % initalize the performance report
+    {ok, Fd} = file:open(?report_path, [write]),
+    io:fwrite(Fd, "##-----------Load Test Report For Erlang Tracing Tool------------~n", []),
+    io:fwrite(Fd, "~-30.25s~-30.25s~-30.25s~n", ["InvokingRate (times/m)", "MQLenTracer", "MQLenFormatter"]),
+    % measure over-loaded process every 10 ms
+    {ok, Ref} = timer:send_interval(?invoke_interval, ?MODULE, invoke),
     PidTracer = whereis(recon_trace_tracer),
     PidFormatter = whereis(recon_trace_formatter),
+    % rate = times of invoke per millisecond
+    % initial rate is 1 invoke per ms
     {ok, #state{rate = 1, tref = Ref, tracer = PidTracer,
-                formatter = PidFormatter, stable_c = 0}}.
+                formatter = PidFormatter, stable_c = 0,
+                report_fd = Fd
+                }}.
 
 %% TimesPerMs is the invoke rate
 %% How many times we will invoke the function per millisecond
 set_rate(TimesPerMs) ->
     gen_server:call(?MODULE, {set_rate, TimesPerMs}).
+
+stop() ->
+    gen_server:cast(?MODULE, stop).
 
 func_to_be_traced(_Arg) ->
     764543 + 676887.
@@ -97,6 +116,9 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast(stop, State) ->
+    error_logger:info_msg("stop loadtest service~n", []),
+    {stop, normal, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -110,30 +132,48 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(invoke, #state{rate = TimesPerMs, tracer = Tracer,
-        formatter = Formatter} = State) ->
+handle_info(invoke, #state{rate = 0} = State) ->
+    {stop, normal, State};
+
+handle_info(invoke, #state{rate = CurrentRate,
+                stable_c = CurrentStableCounter,
+                tracer = Tracer, formatter = Formatter,
+                report_fd = Fd
+                } = State) ->
+
     [{message_queue_len, TracerMQLen}] =
         erlang:process_info(Tracer, [message_queue_len]),
     [{message_queue_len, FormatterMQLen}] =
         erlang:process_info(Formatter, [message_queue_len]),
-    if TracerMQLen >= ?max_allowed_mq_len orelse FormatterMQLen >= ?max_allowed_mq_len ->
-        error_logger:error_msg("Reached Max Allowed Message Queue Len:~w~n"
-                               "Rate Now:~w invoke/ms~n", [?max_allowed_mq_len, TimesPerMs]),
-        {stop, normal, State};
-    true ->
-        CurrentRate = State#state.rate,
-        CurrentStableCounter = State#state.stable_c,
-        {NextRate, NextStableCounter} =
-            case CurrentStableCounter of
-                25 ->
-                    {CurrentRate + 1, 0};
-                _ ->
-                    {CurrentRate, CurrentStableCounter + 1}
-            end,
 
-        [loadtest:func_to_be_traced([]) || _ <- lists:seq(1, TimesPerMs*10)],
-        {noreply, State#state{rate = NextRate, stable_c = NextStableCounter} }
-    end;
+    io:fwrite(Fd, "~-30.25w~-30.25w~-30.25w~n", [trunc(CurrentRate*1000), TracerMQLen, FormatterMQLen]),
+
+    [loadtest:func_to_be_traced([]) || _ <- lists:seq(1, trunc(CurrentRate*10)) ],
+
+    NextState =
+
+    if
+        TracerMQLen >= ?max_allowed_mq_len orelse FormatterMQLen >= ?max_allowed_mq_len ->
+            error_logger:error_msg("Reached Max Allowed Message Queue Len:~w~n"
+                    "Rate Now:~w invoke/s~n,"
+                    "TracerMQLen:~w, FromatterMQLen:~w~n"
+                    , [?max_allowed_mq_len, CurrentRate*1000, TracerMQLen, FormatterMQLen]),
+            State#state{rate = 0, stable_c = 0};
+
+        TracerMQLen < ?max_allowed_mq_len andalso FormatterMQLen < ?max_allowed_mq_len->
+            {NextRate, NextStableCounter} =
+                case CurrentStableCounter of
+                    25 ->
+                        {CurrentRate + ?fine_tuning_var, 0};
+                    _ ->
+                        {CurrentRate, CurrentStableCounter + 1}
+                end,
+
+            State#state{rate = NextRate, stable_c = NextStableCounter}
+    end,
+
+
+    {noreply, NextState};
 
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -149,7 +189,10 @@ handle_info(_Info, State) ->
 %% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, #state{tref = TRef}=_State) ->
+terminate(_Reason, #state{report_fd = Fd, tref = TRef}=_State) ->
+    io:fwrite(Fd, "##-----------End of Load Test Report ------------~n", []),
+    error_logger:info_msg("generating loadtest report...~n", []),
+    os:cmd("./ebin/plot.pg > ./loadtest.png"),
     timer:cancel(TRef),
     ok.
 

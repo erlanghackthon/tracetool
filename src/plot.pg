@@ -1,0 +1,22 @@
+#!/usr/bin/gnuplot
+reset
+set terminal png
+
+set xtic auto                          # set xtics automatically
+set ytic auto                          # set ytics automatically
+
+set xlabel "InvokingRate times/s"
+set yrange [0:15000]
+
+set ylabel "MessageQueue Length"
+set yrange [0:8500]
+
+set title "Performance per Tracing Rate"
+set key reverse Left outside
+set grid
+
+set style data linespoints
+
+plot "/tmp/loadtest.report" using 1:2 title "MQLenTracer", \
+"" using 1:3 title "MQLenFormatter"
+#
