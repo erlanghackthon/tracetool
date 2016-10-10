@@ -386,10 +386,10 @@ formatter(Tracer, IOServer, FormatterFun, MsgQueue) ->
         TraceMsg ->
             tt_statistics:update_amount({1, erlang:timestamp()}),
             if 
-              queue:len(MsgQueue) >= 10 ->
+              queue:len(MsgQueue) >= 1000 ->
                   io:format(IOServer,lists:flatten(queue:to_list(MsgQueue)), []),
                   formatter(Tracer, IOServer, FormatterFuan, queue:new());
-              _ -> formatter(Tracer, IOServer, FormatterFuan, queue:in(FormatterFun(TraceMsg), MsgQueue))
+              true -> formatter(Tracer, IOServer, FormatterFuan, queue:in(FormatterFun(TraceMsg), MsgQueue))
             end
     after
         1000 ->
