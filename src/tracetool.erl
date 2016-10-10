@@ -31,7 +31,6 @@ start(ConfFilePath) ->
 
 trace(Specs, Max, Options) ->
     trace_mgr:start(),
-    tt_statistics:start(),
     case ets:info(?dbname) of
         undefined ->
                trace_mgr:create_db(?dbname);

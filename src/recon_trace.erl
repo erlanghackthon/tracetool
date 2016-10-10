@@ -384,7 +384,6 @@ formatter(Tracer, IOServer, FormatterFun, MsgQueue) ->
         {'EXIT', Tracer, Reason} ->
             exit(Reason);
         TraceMsg ->
-            tt_statistics:update_amount({1, erlang:timestamp()}),
             if 
               queue:len(MsgQueue) >= 1000 ->
                   io:format(IOServer,lists:flatten(queue:to_list(MsgQueue)), []),
