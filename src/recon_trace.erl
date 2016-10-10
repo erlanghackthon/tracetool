@@ -374,9 +374,9 @@ formatter(Tracer, Parent, Ref, FormatterFun, IOServer) ->
     process_flag(trap_exit, true),
     link(Tracer),
     Parent ! {Ref, linked},
-    formatter(Tracer, IOServer, FormatterFun).
+    formatter(Tracer, IOServer, FormatterFun, queue:new()).
 
-formatter(Tracer, IOServer, FormatterFun) ->
+formatter(Tracer, IOServer, FormatterFun, MsgQueue) ->
     receive
         {'EXIT', Tracer, normal} ->
             io:format("Recon tracer rate limit tripped.~n"),
@@ -385,8 +385,16 @@ formatter(Tracer, IOServer, FormatterFun) ->
             exit(Reason);
         TraceMsg ->
             tt_statistics:update_amount({1, erlang:timestamp()}),
-            io:format(IOServer, FormatterFun(TraceMsg), []),
-            formatter(Tracer, IOServer, FormatterFun)
+            if 
+              queue:len(MsgQueue) >= 10 ->
+                  io:format(IOServer,lists:flatten(queue:to_list(MsgQueue)), []),
+                  formatter(Tracer, IOServer, FormatterFuan, queue:new());
+              _ -> formatter(Tracer, IOServer, FormatterFuan, queue:in(FormatterFun(TraceMsg), MsgQueue))
+            end
+    after
+        1000 ->
+            io:format(IOServer,lists:flatten(queue:to_list(MsgQueue)), []),
+            formatter(Tracer, IOServer, FormatterFuan, queue:new())
     end.
 
 
