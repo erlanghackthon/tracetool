@@ -384,8 +384,9 @@ formatter(Tracer, IOServer, FormatterFun, MsgQueue) ->
         {'EXIT', Tracer, Reason} ->
             exit(Reason);
         TraceMsg ->
+            MsgQLen = queue:len(MsgQueue),
             if 
-              queue:len(MsgQueue) >= 1000 ->
+              MsgQLen >= 1000 ->
                   file_logger:send_event(lists:flatten(queue:to_list(MsgQueue))),
                   formatter(Tracer, IOServer, FormatterFun, queue:new());
               true -> formatter(Tracer, IOServer, FormatterFun, queue:in(FormatterFun(TraceMsg), MsgQueue))
