@@ -392,7 +392,7 @@ formatter(Tracer, IOServer, FormatterFun, MsgQueue) ->
             end
     after
         1000 ->
-            file_logger:send_event(lists:flatten(queue:to_list(MsgQueue)),
+            file_logger:send_event(lists:flatten(queue:to_list(MsgQueue))),
             formatter(Tracer, IOServer, FormatterFun, queue:new())
     end.
 
