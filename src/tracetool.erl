@@ -30,6 +30,7 @@ start(ConfFilePath) ->
         ConfigList).
 
 trace(Specs, Max, Options) ->
+    file_logger:start(),
     trace_mgr:start(),
     case ets:info(?dbname) of
         undefined ->
@@ -71,8 +72,8 @@ modify_options_for_recon(Options) ->
       fun(Opt, NewOptions) ->
               case Opt of
                   {logfilepath, LogfilePath} ->
-                      Dev = trace_mgr:open_report(LogfilePath ++ "tracetool_" ++ atom_to_list(node()) ++ ".log"),
-                      [{io_server, Dev} | NewOptions];
+                      file_logger:add_handler([{dir, LogfilePath}, {max_file, 5}]),
+                      NewOptions;
                   Opt ->
                       [Opt | NewOptions]
               end
