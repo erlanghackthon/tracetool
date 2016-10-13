@@ -387,13 +387,13 @@ formatter(Tracer, IOServer, FormatterFun, MsgQueue) ->
             if 
               queue:len(MsgQueue) >= 1000 ->
                   file_logger:send_event(lists:flatten(queue:to_list(MsgQueue)),
-                  formatter(Tracer, IOServer, FormatterFuan, queue:new());
-              true -> formatter(Tracer, IOServer, FormatterFuan, queue:in(FormatterFun(TraceMsg), MsgQueue))
+                  formatter(Tracer, IOServer, FormatterFun, queue:new());
+              true -> formatter(Tracer, IOServer, FormatterFun, queue:in(FormatterFun(TraceMsg), MsgQueue))
             end
     after
         1000 ->
             file_logger:send_event(lists:flatten(queue:to_list(MsgQueue)),
-            formatter(Tracer, IOServer, FormatterFuan, queue:new())
+            formatter(Tracer, IOServer, FormatterFun, queue:new())
     end.
 
 
