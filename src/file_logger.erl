@@ -149,7 +149,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 check_rotation(State) ->
 	#state{dir=Dir, file_name=FileName, max_size=MaxSize} = State,
-	FilePath = filename:join(Dir, FileName ++ ".log"),
+	FilePath = filename:join(Dir, FileName),
 	{ok, FileInfo} = file:read_file_info(FilePath),
 	Size = FileInfo#file_info.size,
     if 
