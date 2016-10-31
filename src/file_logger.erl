@@ -164,9 +164,9 @@ check_rotation(State) ->
 rotate_file(State) ->
 	#state{dir=Dir, file_name=FileName, fd=Fd, max_files=RotNum} = State,
 	file:close(Fd),
-	FileName = filename:join(Dir, FileName),
-	rotate_file_name(FileName, RotNum-1),
-	{ok, Fd2} = file:open(FileName, ?FILE_OPTIONS),
+	NewFileName = filename:join(Dir, FileName),
+	rotate_file_name(NewFileName, RotNum-1),
+	{ok, Fd2} = file:open(NewFileName, ?FILE_OPTIONS),
 	Fd2.
 
 rotate_file_name(FileName, 0) ->
