@@ -72,7 +72,7 @@ modify_options_for_recon(Options) ->
       fun(Opt, NewOptions) ->
               case Opt of
                   {logfilepath, LogfilePath} ->
-                      file_logger:add_handler([{dir, LogfilePath}, {max_file, 5}]),
+                      file_logger:add_handler([{dir, LogfilePath}, {max_file, 5}, {max_size, 20 * 1024}]),
                       NewOptions;
                   Opt ->
                       [Opt | NewOptions]

@@ -54,7 +54,7 @@ init(Args) ->
 	FileName = "tracetool_" ++ atom_to_list(node()) ++ ".log",
 	File = filename:join(Dir, FileName),
 	filelib:ensure_dir(File),
-    Fd = file:open(File, ?FILE_OPTIONS),
+    {ok, Fd} = file:open(File, ?FILE_OPTIONS),
 	State = #state{
 			dir = Dir,
 			file_name = FileName,
@@ -78,7 +78,7 @@ init(Args) ->
 %% ====================================================================
 handle_event(Msg, State) ->
 	Fd = State#state.fd,
-	file:write(Fd, Msg),
+	file:write(Fd,Msg),
 	check_rotation(State),
     {ok, State}.
 
